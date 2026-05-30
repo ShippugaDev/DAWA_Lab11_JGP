@@ -49,6 +49,7 @@ const initialProjects = [
         status: "En progreso",
         progress: 65,
         team: 5,
+        members: [1, 2],
     },
     {
         id: 2,
@@ -57,6 +58,7 @@ const initialProjects = [
         status: "En revisión",
         progress: 90,
         team: 3,
+        members: [3],
     },
     {
         id: 3,
@@ -65,6 +67,7 @@ const initialProjects = [
         status: "Planificado",
         progress: 20,
         team: 4,
+        members: [1, 3],
     },
     {
         id: 4,
@@ -73,6 +76,7 @@ const initialProjects = [
         status: "En progreso",
         progress: 45,
         team: 6,
+        members: [2],
     },
     {
         id: 5,
@@ -81,6 +85,7 @@ const initialProjects = [
         status: "Completado",
         progress: 100,
         team: 2,
+        members: [3],
     },
     {
         id: 6,
@@ -89,6 +94,7 @@ const initialProjects = [
         status: "En progreso",
         progress: 75,
         team: 3,
+        members: [1],
     },
 ]
 
@@ -178,6 +184,16 @@ const initialTasks = [
 
 export default function DashboardPage() {
     const [projects, setProjects] = useState(initialProjects)
+    const [isProjectDialogOpen, setIsProjectDialogOpen] = useState(false)
+    const [editingProject, setEditingProject] = useState<(typeof initialProjects)[0] | null>(null)
+
+    const [projectForm, setProjectForm] = useState({
+        title: "",
+        description: "",
+        status: "",
+        progress: "",
+        members: [] as number[],
+    })
     const [members, setMembers] = useState(initialTeamMembers)
     const [isMemberDialogOpen, setIsMemberDialogOpen] = useState(false)
     const [editingMember, setEditingMember] = useState<(typeof initialTeamMembers)[0] | null>(null)
@@ -221,11 +237,11 @@ export default function DashboardPage() {
         const project = {
             id: Date.now(),
             ...newProject,
+            members: [],
         }
 
         setProjects((prevProjects) => [...prevProjects, project])
     }
-
 
     const handleSaveSettings = () => {
         alert(
@@ -427,7 +443,58 @@ export default function DashboardPage() {
             setTasks((prevTasks) => prevTasks.filter((task) => task.id !== id))
         }
     }
+    const resetProjectForm = () => {
+        setProjectForm({
+            title: "",
+            description: "",
+            status: "",
+            progress: "",
+            members: [],
+        })
+        setEditingProject(null)
+    }
 
+    const handleOpenEditProject = (project: (typeof initialProjects)[0]) => {
+        setEditingProject(project)
+        setProjectForm({
+            title: project.title,
+            description: project.description,
+            status: project.status,
+            progress: String(project.progress),
+            members: project.members || [],
+        })
+        setIsProjectDialogOpen(true)
+    }
+
+    const handleSaveProject = () => {
+        if (!projectForm.title || !projectForm.description || !projectForm.status) {
+            alert("Completa título, descripción y estado")
+            return
+        }
+
+        if (editingProject) {
+            setProjects((prevProjects) =>
+                prevProjects.map((project) =>
+                    project.id === editingProject.id
+                        ? {
+                            ...project,
+                            title: projectForm.title,
+                            description: projectForm.description,
+                            status: projectForm.status,
+                            progress: Number(projectForm.progress),
+                            team: projectForm.members.length,
+                            members: projectForm.members,
+                        }
+                        : project
+                )
+            )
+
+            alert("Proyecto actualizado correctamente")
+        }
+
+        resetProjectForm()
+        setIsProjectDialogOpen(false)
+    }
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
             <div className="max-w-7xl mx-auto">
@@ -453,6 +520,11 @@ export default function DashboardPage() {
                         <TabsTrigger value="settings">Configuración</TabsTrigger>
                         <TabsTrigger value="extras">Extras</TabsTrigger>
                     </TabsList>
+
+
+
+
+
 
                     <TabsContent value="overview" className="space-y-4">
                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -641,6 +713,14 @@ export default function DashboardPage() {
 
                                                     <Button
                                                         size="sm"
+                                                        variant="outline"
+                                                        onClick={() => handleOpenEditProject(project)}
+                                                    >
+                                                        Editar
+                                                    </Button>
+
+                                                    <Button
+                                                        size="sm"
                                                         variant="destructive"
                                                         onClick={() => handleDeleteProject(project.id)}
                                                     >
@@ -653,6 +733,125 @@ export default function DashboardPage() {
                                 </Card>
                             ))}
                         </div>
+
+                        <Dialog open={isProjectDialogOpen} onOpenChange={setIsProjectDialogOpen}>
+                            <DialogContent className="sm:max-w-[550px]">
+                                <DialogHeader>
+                                    <DialogTitle>Editar proyecto</DialogTitle>
+                                    <DialogDescription>
+                                        Modifica los datos del proyecto seleccionado.
+                                    </DialogDescription>
+                                </DialogHeader>
+
+                                <div className="grid gap-4 py-4">
+                                    <div className="grid gap-2">
+                                        <Label>Título</Label>
+                                        <Input
+                                            value={projectForm.title}
+                                            onChange={(e) =>
+                                                setProjectForm({ ...projectForm, title: e.target.value })
+                                            }
+                                            placeholder="Nombre del proyecto"
+                                        />
+                                    </div>
+
+                                    <div className="grid gap-2">
+                                        <Label>Descripción</Label>
+                                        <Input
+                                            value={projectForm.description}
+                                            onChange={(e) =>
+                                                setProjectForm({ ...projectForm, description: e.target.value })
+                                            }
+                                            placeholder="Descripción del proyecto"
+                                        />
+                                    </div>
+
+                                    <div className="grid gap-2">
+                                        <Label>Estado</Label>
+                                        <Select
+                                            value={projectForm.status}
+                                            onValueChange={(value) =>
+                                                setProjectForm({ ...projectForm, status: value })
+                                            }
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Selecciona estado" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="Planificado">Planificado</SelectItem>
+                                                <SelectItem value="En progreso">En progreso</SelectItem>
+                                                <SelectItem value="En revisión">En revisión</SelectItem>
+                                                <SelectItem value="Completado">Completado</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    <div className="grid gap-2">
+                                        <Label>Progreso</Label>
+                                        <Input
+                                            type="number"
+                                            min="0"
+                                            max="100"
+                                            value={projectForm.progress}
+                                            onChange={(e) =>
+                                                setProjectForm({ ...projectForm, progress: e.target.value })
+                                            }
+                                            placeholder="0 - 100"
+                                        />
+                                    </div>
+
+                                    <div className="grid gap-2">
+                                        <Label>Miembros asignados</Label>
+
+                                        <div className="space-y-2 rounded-lg border p-3">
+                                            {members.map((member) => (
+                                                <label
+                                                    key={member.userId}
+                                                    className="flex items-center gap-2 text-sm"
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={projectForm.members.includes(member.userId)}
+                                                        onChange={(e) => {
+                                                            if (e.target.checked) {
+                                                                setProjectForm({
+                                                                    ...projectForm,
+                                                                    members: [...projectForm.members, member.userId],
+                                                                })
+                                                            } else {
+                                                                setProjectForm({
+                                                                    ...projectForm,
+                                                                    members: projectForm.members.filter(
+                                                                        (id) => id !== member.userId
+                                                                    ),
+                                                                })
+                                                            }
+                                                        }}
+                                                    />
+                                                    {member.name}
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <DialogFooter>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => {
+                                            resetProjectForm()
+                                            setIsProjectDialogOpen(false)
+                                        }}
+                                    >
+                                        Cancelar
+                                    </Button>
+
+                                    <Button onClick={handleSaveProject}>
+                                        Guardar cambios
+                                    </Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
                     </TabsContent>
 
                     <TabsContent value="team" className="space-y-4">
